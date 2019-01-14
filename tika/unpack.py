@@ -28,6 +28,32 @@ from sys import version_info
 # tarfile returned object can be used as is in earlier versions.
 _text_wrapper = TextIOWrapper if version_info.major >= 3 else lambda x: x
 
+# Python CSV reader cannot handle strings with null chars in them,
+# but metadata CSVs may include nulls.
+# To work around this, escape the strings ('\x00') before parsing them,
+# and unescape them again after parsing.
+if version_info.major >= 3:
+    # Python3 expects (unicode) strs as input and output
+    _csv_encode = lambda x: x.encode('unicode-escape').decode('ascii')
+    _csv_decode = lambda x: x.encode('ascii').decode('unicode-escape')
+else:
+    # Python2 expects (byte) strs as input and output
+    _csv_encode = lambda x: x.decode('latin-1').encode('unicode-escape')
+    _csv_decode = lambda x: x.decode('unicode-escape').encode('latin-1')
+
+# Code based on Python doc example, see bottom of the page at
+#  https://docs.python.org/2.7/library/csv.html
+def _wrapped_csv(csv_data, dialect=csv.excel, **kwargs):
+    def _escape_strs(raw_data):
+        for line in raw_data:
+            yield _csv_encode(line)
+    # Escape input strings to avoid null chars being passed to csv
+    csv_reader = csv.reader(_escape_strs(csv_data),
+                           dialect=dialect, **kwargs)
+    for row in csv_reader:
+        # Decode back to unescaped strings
+        yield [_csv_decode(c) for c in row]
+
 
 def from_file(filename, serverEndpoint=ServerEndpoint):
     '''
@@ -78,7 +104,7 @@ def _parse(tarOutput):
         metadataMember = tarFile.getmember("__METADATA__")
         if not metadataMember.issym() and metadataMember.isfile():
             metadataFile = _text_wrapper(tarFile.extractfile(metadataMember))
-            metadataReader = csv.reader(metadataFile)
+            metadataReader = _wrapped_csv(metadataFile)
             for metadataLine in metadataReader:
                 # each metadata line comes as a key-value pair, with list values
                 # returned as extra values in the line - convert single values
