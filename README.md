@@ -35,6 +35,11 @@ These are read once, when tika/tika.py is initially loaded and used throughout a
 4. `TIKA_CLIENT_ONLY` - if set to True, then `TIKA_SERVER_JAR` is ignored, and relies on the value for `TIKA_SERVER_ENDPOINT` and treats Tika like a REST client.
 5. `TIKA_TRANSLATOR` - set to the fully qualified class name (defaults to Lingo24) for the Tika translator implementation.
 6. `TIKA_SERVER_CLASSPATH` - set to a string (delimited by ':' for each additional path) to prepend to the Tika server jar path.
+7. `TIKA_LOG_PATH` - set to a directory with write permissions and the `tika.log` and `tika-server.log` files will be placed in this directory.
+8. `TIKA_PATH` - set to a directory with write permissions and the `tika_server.jar` file will be placed in this directory.
+9. `TIKA_JAVA` - set the Java runtime name, e.g., `java` or `java9`
+10. `TIKA_STARTUP_SLEEP` - number of seconds (`float`) to wait per check if Tika server is launched at runtime
+11. `TIKA_STARTUP_MAX_RETRY` - number of checks (`int`) to attempt for Tika server startup if launched at runtime
 
 Testing it out
 ==============
@@ -51,8 +56,17 @@ print(parsed["metadata"])
 print(parsed["content"])
 ```
 
-Parser Interface (new)
+Parser Interface
 ----------------------
+The parser interface extracts text and metadata using the /rmeta 
+interface. This is one of the better ways to get the internal XHTML
+content extracted.
+
+Note: 
+![Alert Icon](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon28.png "Alert")
+The parser interface needs the following environment variable set on the console for printing of the extracted content.
+```export PYTHONIOENCODING=utf8```
+
 ```
 #!/usr/bin/env python
 import tika
@@ -67,8 +81,44 @@ parsed = parser.from_file('/path/to/file', 'http://tika:9998/tika')
 string_parsed = parser.from_buffer('Good evening, Dave', 'http://tika:9998/tika')
 ```
 
-Detect Interface (new)
+Specify Output Format To XHTML
+---------------------
+The parser interface is optionally able to output the content as XHTML rather than plain text.
+
+Note: 
+![Alert Icon](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon28.png "Alert")
+The parser interface needs the following environment variable set on the console for printing of the extracted content.
+```export PYTHONIOENCODING=utf8```
+
+```
+#!/usr/bin/env python
+import tika
+from tika import parser
+parsed = parser.from_file('/path/to/file', xmlContent=True)
+print(parsed["metadata"])
+print(parsed["content"])
+
+# Note: This is also available when parsing from the buffer.
+```
+
+Unpack Interface
+----------------
+The unpack interface handles both metadata and text extraction in a single
+call and internally returns back a tarball of metadata and text entries that
+is internally unpacked, reducing the wire load for extraction.
+
+```
+#!/usr/bin/env python
+import tika
+from tika import unpack
+parsed = unpack.from_file('/path/to/file')
+```
+
+Detect Interface
 ----------------------
+The detect interface provides a IANA MIME type classification for the
+provided file.
+
 ```
 #!/usr/bin/env python
 import tika
@@ -76,8 +126,12 @@ from tika import detector
 print(detector.from_file('/path/to/file'))
 ```
 
-Config Interface (new)
+Config Interface
 ----------------------
+The config interface allows you to inspect the Tika Server environment's
+configuration including what parsers, mime types, and detectors the 
+server has been configured with.
+
 ```
 #!/usr/bin/env python
 import tika
@@ -87,16 +141,22 @@ print(config.getMimeTypes())
 print(config.getDetectors())
 ```
 
-Language Detection Interface (new)
+Language Detection Interface
 ---------------------------------
+The language detection interface provides a 2 character language 
+code texted based on the text in provided file.
+
 ```
 #!/usr/bin/env python
 from tika import language
 print(language.from_file('/path/to/file'))
 ```
 
-Translate Interface (new)
+Translate Interface
 ------------------------
+The translate interface translates the text automatically extracted
+by Tika from the source language to the destination language.
+
 ```
 #!/usr/bin/env python
 from tika import translate
@@ -224,6 +284,11 @@ Contributors
 * Yash Tanna, USC
 * Igor Tokarev, Freelance
 * Imraan Parker, Freelance
+* Annie K. Didier, JPL
+
+Thanks
+======
+Thanks to the [DARPA MEMEX](http://memex.jpl.nasa.gov) program for funding most of the original portions of this work.
 
 License
 =======

@@ -28,9 +28,16 @@ from sys import version_info
 # tarfile returned object can be used as is in earlier versions.
 _text_wrapper = TextIOWrapper if version_info.major >= 3 else lambda x: x
 
+
 def from_file(filename, serverEndpoint=ServerEndpoint):
+    '''
+    Parse from file
+    :param filename: file
+    :param serverEndpoint: Tika server end point (optional)
+    :return:
+    '''
     tarOutput = parse1('unpack', filename, serverEndpoint,
-                       responseMimeType='application/x-tar', 
+                       responseMimeType='application/x-tar',
                        services={'meta': '/meta', 'text': '/tika',
                                  'all': '/rmeta/xml', 'unpack': '/unpack/all'},
                        rawResponse=True)
@@ -38,10 +45,16 @@ def from_file(filename, serverEndpoint=ServerEndpoint):
 
 
 def from_buffer(string, serverEndpoint=ServerEndpoint):
+    '''
+    Parse from buffered content
+    :param string:  buffered content
+    :param serverEndpoint: Tika server URL (Optional)
+    :return: parsed content
+    '''
     status, response = callServer('put', serverEndpoint, '/unpack/all', string,
                                   {'Accept': 'application/x-tar'}, False,
-                                  rawResponse=True)      
-  
+                                  rawResponse=True)
+
     return _parse((status, response))
 
 
@@ -84,7 +97,10 @@ def _parse(tarOutput):
 
         contentMember = tarFile.getmember("__TEXT__")
         if not contentMember.issym() and contentMember.isfile():
-            content = _text_wrapper(tarFile.extractfile(contentMember)).read()
+            if version_info.major >= 3:
+                content = _text_wrapper(tarFile.extractfile(contentMember), encoding='utf8').read()
+            else:
+                content = tarFile.extractfile(contentMember).read().decode('utf8')
 
     # get the remaining files as attachments
     attachments = {}

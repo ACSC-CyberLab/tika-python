@@ -31,11 +31,11 @@ class CreateTest(unittest.TestCase):
     def test_remote_html(self):
         'parse remote HTML' 
         self.assertTrue(tika.parser.from_file(
-            'http://philadelphia.pa.gegov.com/_templates/551/RetailFood/_report_full.cfm?inspectionID=8B2C8CA4-8039-EC2C-F94DBD247613E5CC&domainID=551&userID=0'))
+            'http://neverssl.com/index.html'))
     def test_remote_mp3(self):
         'parese remote mp3'
         self.assertTrue(tika.parser.from_file(
-            'http://tindeck.com/download/pro/viqis/theCalling-Lemming-Version.mp3'))
+            'https://archive.org/download/Ainst-Spaceshipdemo.mp3/Ainst-Spaceshipdemo.mp3'))
     def test_remote_jpg(self):
         'parse remote jpg'
         self.assertTrue(tika.parser.from_file(
